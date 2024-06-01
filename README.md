@@ -1,5 +1,7 @@
 # co2-Sensor für Höhlen
 
+![Build workflow status](https://github.com/keppler/co2/actions/workflows/cmake-avr.yml/badge.svg)
+
 ![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/sensor.webp)
 
 ## Hintergrund
