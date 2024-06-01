@@ -1,5 +1,7 @@
 # co2-Sensor für Höhlen
 
+![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/sensor.webp)
+
 ## Hintergrund
 
 Regenwasser kann bei der Versickerung _CO₂_ aus dem Boden aufnehmen. Je aktiver die Vegetation, desto höher ist oft die mögliche _CO₂_-Konzentration (die Zersetzung organischer Substanzen läuft praktisch "rückwärts" zur Photosynthese).
