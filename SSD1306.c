@@ -1,8 +1,18 @@
-#include <avr/io.h>
+#include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <stdint.h>
 #include "i2cmaster.h"
 #include "SSD1306.h"
+
+#if 0
+// save font in flash
+#define FONT_MEM PROGMEM
+#define FONT_READ_BYTE pgm_read_byte
+#else
+// save font in EEPROM
+#define FONT_MEM EEMEM
+#define FONT_READ_BYTE eeprom_read_byte
+#endif
 
 #define I2CADDR     0x78
 #define WIRE_MAX    32
@@ -27,7 +37,7 @@
 #define SSD1306_COLUMNADDR          0x21 ///< See datasheet
 #define SSD1306_PAGEADDR            0x22 ///< See datasheet
 
-static const uint8_t PROGMEM _font[][7] = {
+static const uint8_t FONT_MEM _font[][7] = {
 	{0x00,0x1C,0x3E,0x63,0x41,0x00,0x00},	// 0x28 (
 	{0x00,0x41,0x63,0x3E,0x1C,0x00,0x00},	// 0x29 )
 	{0x08,0x2A,0x3E,0x1C,0x1C,0x3E,0x2A},	// 0x2A *
@@ -130,10 +140,8 @@ void SSD1306_writeImg(uint8_t width, uint8_t height, const uint8_t *img, uint8_t
 			ch = fromFlash ? pgm_read_byte(img + (y * width) + x) : img[(y * width) + x];
 			i2c_write(ch);
 		}
-		//i2c_write(0x00);
 		i2c_stop();
 	}
-
 }
 
 void SSD1306_writeChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t flags) {
@@ -157,7 +165,7 @@ void SSD1306_writeChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t flags) {
 	i2c_start_wait(I2CADDR+I2C_WRITE);
 	i2c_write(0x40);
     for (uint8_t line = 0; line < 7; ++line) {
-        uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? pgm_read_byte(&_font[ch][line]) ^ 0xFF : pgm_read_byte(&_font[ch][line]);
+        uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? FONT_READ_BYTE(&_font[ch][line]) ^ 0xFF : FONT_READ_BYTE(&_font[ch][line]);
         if (flags & SSD1306_FLAG_DOUBLE) {
             c = (c & 0x01) | ((c & 0x01) << 1) | ((c & 0x02) << 1) | ((c & 0x02) << 2) | ((c & 0x04) << 2) | ((c & 0x04) << 3) | ((c & 0x08) << 3) | ((c & 0x08) << 4);
         }
@@ -179,7 +187,7 @@ void SSD1306_writeChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t flags) {
         i2c_start_wait(I2CADDR+I2C_WRITE);
         i2c_write(0x40);
         for (uint8_t line = 0; line < 7; ++line) {
-            uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? pgm_read_byte(&_font[ch][line]) ^ 0xFF : pgm_read_byte(&_font[ch][line]);
+            uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? FONT_READ_BYTE(&_font[ch][line]) ^ 0xFF : FONT_READ_BYTE(&_font[ch][line]);
             c = ((c & 0x10) >> 4) | ((c & 0x10) >> 3) | ((c & 0x20) >> 3) | ((c & 0x20) >> 2) | ((c & 0x40) >> 2) | ((c & 0x40) >> 1) | ((c & 0x80) >> 1) | (c & 0x80);
             i2c_write(c);
             i2c_write(c);
