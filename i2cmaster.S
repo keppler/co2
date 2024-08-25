@@ -84,11 +84,23 @@
 	.stabs	"",100,0,0,i2c_delay_T2
 	.stabs	"i2cmaster.S",100,0,0,i2c_delay_T2
 	.func i2c_delay_T2	; delay 5.0 microsec with 8 Mhz crystal	
-i2c_delay_T2:        
-  	rcall i2c_delay_20cycles
-		rjmp  i2c_delay_20cycles
-	.endfunc     ; total 40 cyles = 5.0 microsec with 8 Mhz crystal 
+i2c_delay_T2:
+#if F_CPU <= 100000UL
+;	5us (5 cycles):
+;	rjmp 1f      ; 2   "
+;1:	rjmp 2f      ; 2   "
+;2:  nop
+;	2us (2 cycles), should be sufficient for 1MHz; faster I2C...
+	nop
+	nop
+#else
+;	total 40 cycles = 5.0 microsec with 8 Mhz crystal
+	rcall i2c_delay_20cycles
+	rjmp  i2c_delay_20cycles
+#endif
+	.endfunc
 
+#if F_CPU > 100000UL
   .func i2c_delay_20cycles ; 4 cycles
 i2c_delay_20cycles:
 	rjmp 1f      ; 2   "
@@ -100,6 +112,7 @@ i2c_delay_20cycles:
 6:	nop          ; 1   "
 	ret          ; 3   "
 	.endfunc     ; total 20 cyles
+#endif
 
 ;*************************************************************************
 ; Initialization of the I2C bus interface. Need to be called only once
