@@ -1,28 +1,35 @@
-// 1MHz: c:avrdude -c usbasp -p t85 -P usb -v -U lfuse:w:0x62:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m -U flash:w:co2-scd41.hex:i
+/*         ___    ___
+ *  __ ___|_  )__/ __| ___ _ _  ___ ___ _ _
+ * / _/ _ \/ /___\__ \/ -_) ' \(_-</ _ \ '_|
+ *_\__\___/___|  |___/\___|_||_/__/\___/_|_________________________________
+ * CO₂ Sensor for Caving -- https://github.com/keppler/co2
+ * Program entry and main measurement loop
+ */
 
 #include <avr/pgmspace.h>
 #include <util/delay.h>
+#include "button.h"
 #include "i2cmaster.h"
+#include "menu.h"
+#include "timer.h"
 #include "SSD1306.h"
 #include "SCD4x.h"
 #include "VCC.h"
+#include "main.h"
 
 #define VCC_MIN 280 // minimum voltage: 2.80V
 #define VCC_MAX 370 // maximum voltage: 3.70V
 
-void sensor_error(uint16_t err) {
-    SSD1306_writeString(0, 0, PSTR("ERROR:"), 1);
-    SSD1306_writeInt(7, 0, (int16_t)err, 10, 0x00, 0);
-    while(1);
-}
-
+// show battery status
 static uint8_t oldPct = 0;
+static uint8_t vccPct = 0;
 static void writeBattery(uint8_t pct) {
     if (oldPct == pct) return; // nothing has changed
     oldPct = pct;
-    //SSD1306_writeString(0, 0, PSTR("       "), 1);
     //uint8_t img[] = {0x18, 0x7e, 0x42, 0x42, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e};
-    uint8_t img[] = {0x18, 0x7e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7e};
+    uint8_t img[13];
+    img[0] = 0x18;
+    img[1] = img[12] = 0x7e;
     for (uint8_t x=0; x<10; x++) {
         img[11-x] = pct > x*10 ? 0x7e : 0x42;
     }
@@ -32,13 +39,92 @@ static void writeBattery(uint8_t pct) {
     while (x < 6) SSD1306_writeChar(x++, 0, ' ', 0);
 }
 
+static uint8_t tick;
+static uint16_t co2max = 0;
+
+static void main_enter(void) {
+    tick = 0;
+    SSD1306_clear();
+
+    if (SCD4x_startPeriodicMeasurement() != 0) {
+        SSD1306_writeString(0, 2, PSTR("START ERROR"), 1);
+    }
+
+    oldPct = 0xff; // force update
+    writeBattery(vccPct);
+
+    SSD1306_writeString(4, 3, PSTR("."), 1);
+    SSD1306_writeString(7, 2, PSTR("^C"), 1);
+    SSD1306_writeString(14, 2, PSTR("%"), 1);
+    SSD1306_writeString(14, 3, PSTR("RH"), 1);
+
+    SSD1306_writeString(0, 5, PSTR("CO2 MAX:"), 1);
+    SSD1306_writeInt(9, 5, co2max, 10, 0, 0);
+    SSD1306_writeString(12, 6, PSTR("CO2"), 1);
+    SSD1306_writeString(12, 7, PSTR("PPM"), 1);
+}
+
+static void main_leave(void) {
+    SCD4x_stopPeriodicMeasurement();
+}
+
+static void main_loop(void) {
+    static const char tickChars[] = {'[','\\',']','\\'};
+    static uint64_t old_ms = 0;
+    uint8_t err;
+
+    uint8_t btn = button_pressed();
+    if (btn == 1) {
+        app_state_next(MENU);
+        return;
+    }
+
+    if (timer_millis() - old_ms >= 1000) {
+        err = SCD4x_getData();
+        if (err > 1) {
+            SSD1306_writeString(0, 3, PSTR("ERR:       "), 1);
+            SSD1306_writeInt(5, 3, err, 16, 0x00, 0);
+        } else if (err == 0) {
+            if (SCD4x_VALUE_co2 > co2max) co2max = SCD4x_VALUE_co2;
+            SSD1306_writeInt(9, 5, co2max, 10, 0, 0);
+            SSD1306_writeInt(1, 6, SCD4x_VALUE_co2, 10, 0x04, 5);
+            SSD1306_writeInt(0, 2, SCD4x_VALUE_temp / 10, 10, 0x04, 2);
+            SSD1306_writeInt(5, 2, SCD4x_VALUE_temp % 10, 10, 0x04, 0);
+            SSD1306_writeInt(10, 2, SCD4x_VALUE_humidity, 10, 0x04, 2);
+        }
+        if (tick % 10 == 0) {
+            // update VCC display every ~10 seconds
+            uint16_t vcc = VCC_get();
+            // SSD1306_writeInt(8, 0, vcc, 10, 0x00, 0); // DEBUG output raw voltage
+            if (vcc < VCC_MIN) vcc = VCC_MIN;
+            else if (vcc > VCC_MAX) vcc = VCC_MAX;
+            vccPct = ((vcc - VCC_MIN) * 100) / (VCC_MAX - VCC_MIN);
+            writeBattery(vccPct);
+        }
+        SSD1306_writeChar(15, 0, tickChars[++tick % 4], 0);
+        old_ms = timer_millis();
+    }
+
+}
+
+static enum app_state_t app_state = MAINLOOP, app_lastState = MAINLOOP;
+
+void app_state_next(enum app_state_t next) {
+    app_lastState = app_state;
+    app_state = next;
+}
+
 int main(void) {
     uint8_t err;
 
-    /* LED (for test purposes)
-    DDRB |= (1 << DDB4);
-    PORTB &= ~(1 << PB4);
-    */
+    /* initialize time functions */
+    timer_init();
+
+    button_init();
+
+    // init buzzer
+    DDRB |= (1 << DDB3);
+    PORTB &= ~(1 << PB3);
 
     /* give components enough time to start up */
     _delay_ms(30);
@@ -50,16 +136,19 @@ int main(void) {
     SSD1306_init();
     SSD1306_clear();
     SSD1306_on();
-    SSD1306_writeString(0, 0, PSTR("V23 - 2024-05-12"), 1);
-    SSD1306_writeInt(15, 7, 1, 10, 0x00, 0);
+    SSD1306_writeString(0, 0, PSTR("V24 - 2024-08-25"), 1);
 
-    _delay_ms(500);
+    // beep.
+    PORTB |= (1 << PB3);
+    uint64_t old_ms = timer_millis();
+    while (timer_millis() - old_ms < 100);
+    PORTB &= ~(1 << PB3);
+
+    _delay_ms(400);
 
     if ((err = SCD4x_stopPeriodicMeasurement()) != 0) {
         SSD1306_writeInt(14, 1, err, 16, 0x00, 0);
     }
-
-    SSD1306_writeInt(15, 7, 2, 10, 0x00, 0); // DEBUG
 
     /* detect sensor type */
     scd4x_sensor_type_t sensorType = SCD4x_getSensorType();
@@ -70,8 +159,10 @@ int main(void) {
         SSD1306_writeString(8, 1, PSTR("SCD41"), 1);
     } else if (sensorType == SCD4x_SENSOR_ERROR) {
         SSD1306_writeString(8, 1, PSTR("ERROR"), 1);
+        while(1);
     } else {
         SSD1306_writeString(8, 1, PSTR("UNKNOWN"), 1);
+        while(1);
     }
 
     /* read serial number */
@@ -114,48 +205,26 @@ int main(void) {
     }
 
     _delay_ms(3000);
-    SSD1306_clear();
+    main_enter();
 
-    if (SCD4x_startPeriodicMeasurement() != 0) {
-        SSD1306_writeString(0, 2, PSTR("START ERROR"), 1);
-    }
-
-    writeBattery(0);
-
-    SSD1306_writeString(4, 3, PSTR("."), 1);
-    SSD1306_writeString(7, 2, PSTR("^C"), 1);
-    SSD1306_writeString(14, 2, PSTR("%"), 1);
-    SSD1306_writeString(14, 3, PSTR("RH"), 1);
-
-    SSD1306_writeString(0, 5, PSTR("CO2 MAX:"), 1);
-    SSD1306_writeString(12, 6, PSTR("CO2"), 1);
-    SSD1306_writeString(12, 7, PSTR("PPM"), 1);
-
-    uint8_t tick = 0;
-    uint16_t co2max = 0;
-    static const char tickChars[] = {'[','\\',']','\\'};
     while(1) {
-        err = SCD4x_getData();
-        if (err > 1) {
-            SSD1306_writeString(0, 3, PSTR("ERR:       "), 1);
-            SSD1306_writeInt(5, 3, err, 16, 0x00, 0);
-        } else if (err == 0) {
-            if (SCD4x_VALUE_co2 > co2max) co2max = SCD4x_VALUE_co2;
-            SSD1306_writeInt(9, 5, co2max, 10, 0, 0);
-            SSD1306_writeInt(1, 6, SCD4x_VALUE_co2, 10, 0x04, 5);
-            SSD1306_writeInt(0, 2, SCD4x_VALUE_temp / 10, 10, 0x04, 2);
-            SSD1306_writeInt(5, 2, SCD4x_VALUE_temp % 10, 10, 0x04, 0);
-            SSD1306_writeInt(10, 2, SCD4x_VALUE_humidity, 10, 0x04, 2);
+        button_read();
+        if (app_lastState != app_state) {
+            // state transition
+            switch (app_lastState) {
+                case MAINLOOP: main_leave(); break;
+                default: break;
+            }
+            switch (app_state) {
+                case MAINLOOP: main_enter(); break;
+                case MENU: menu_enter(); break;
+            }
+            app_lastState = app_state;
         }
-        _delay_ms(1000);
-        SSD1306_writeChar(15, 0, tickChars[++tick % 4], 0);
-        if (tick % 10 == 0) {
-            // update VCC display every ~10 seconds
-            uint16_t vcc = VCC_get();
-            // SSD1306_writeInt(8, 0, vcc, 10, 0x00, 0); // DEBUG output raw voltage
-            if (vcc < VCC_MIN) vcc = VCC_MIN;
-            else if (vcc > VCC_MAX) vcc = VCC_MAX;
-            writeBattery(((vcc - VCC_MIN) * 100) / (VCC_MAX-VCC_MIN));
+        switch (app_state) {
+            case MAINLOOP: main_loop(); break;
+            case MENU: menu_loop(); break;
         }
+
     }
 }
