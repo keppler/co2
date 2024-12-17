@@ -153,47 +153,34 @@ void SSD1306_writeChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t flags) {
 	if (ch < '(' || ch > '^') ch = '@';
 	ch -= '(';
 
-	/* it's actually much more compact to send these commands one by one than
-	 * building an array and sending them using commandList */
-	_SSD1306_command(SSD1306_COLUMNADDR);
-	_SSD1306_command(x * 8);
-	_SSD1306_command(((x+(flags & SSD1306_FLAG_DOUBLE ? 2 : 1)) * 8)-1);
-	_SSD1306_command(SSD1306_PAGEADDR);
-	_SSD1306_command(y);
-	_SSD1306_command(y);
-
-	i2c_start_wait(I2CADDR+I2C_WRITE);
-	i2c_write(0x40);
-    for (uint8_t line = 0; line < 7; ++line) {
-        uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? FONT_READ_BYTE(&_font[ch][line]) ^ 0xFF : FONT_READ_BYTE(&_font[ch][line]);
-        if (flags & SSD1306_FLAG_DOUBLE) {
-            c = (c & 0x01) | ((c & 0x01) << 1) | ((c & 0x02) << 1) | ((c & 0x02) << 2) | ((c & 0x04) << 2) | ((c & 0x04) << 3) | ((c & 0x08) << 3) | ((c & 0x08) << 4);
-        }
-        i2c_write(c);
-        if (flags & SSD1306_FLAG_DOUBLE) i2c_write(c);
-    }
-	i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
-    if (flags & SSD1306_FLAG_DOUBLE) i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
-	i2c_stop();
-
-    if (flags & SSD1306_FLAG_DOUBLE) {
-        /* write second part of double-sized character */
+    uint8_t loop;
+    for (loop = 0; loop == 0 || (loop == 1 && (flags & SSD1306_FLAG_DOUBLE)); loop++) {
+        /* it's actually much more compact to send these commands one by one than
+         * building an array and sending them using commandList */
         _SSD1306_command(SSD1306_COLUMNADDR);
         _SSD1306_command(x * 8);
-        _SSD1306_command(((x+2) * 8)-1);
+        _SSD1306_command(((x + (flags & SSD1306_FLAG_DOUBLE ? 2 : 1)) * 8) - 1);
         _SSD1306_command(SSD1306_PAGEADDR);
-        _SSD1306_command(y+1);
-        _SSD1306_command(y+1);
-        i2c_start_wait(I2CADDR+I2C_WRITE);
+        _SSD1306_command(y + loop);
+        _SSD1306_command(y + loop);
+
+        i2c_start_wait(I2CADDR + I2C_WRITE);
         i2c_write(0x40);
         for (uint8_t line = 0; line < 7; ++line) {
-            uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? FONT_READ_BYTE(&_font[ch][line]) ^ 0xFF : FONT_READ_BYTE(&_font[ch][line]);
-            c = ((c & 0x10) >> 4) | ((c & 0x10) >> 3) | ((c & 0x20) >> 3) | ((c & 0x20) >> 2) | ((c & 0x40) >> 2) | ((c & 0x40) >> 1) | ((c & 0x80) >> 1) | (c & 0x80);
+            uint8_t c = (flags & SSD1306_FLAG_INVERTED) ? FONT_READ_BYTE(&_font[ch][line]) ^ 0xFF : FONT_READ_BYTE(
+                    &_font[ch][line]);
+            if (loop == 1) {
+                c = ((c & 0x10) >> 4) | ((c & 0x10) >> 3) | ((c & 0x20) >> 3) | ((c & 0x20) >> 2) | ((c & 0x40) >> 2) |
+                    ((c & 0x40) >> 1) | ((c & 0x80) >> 1) | (c & 0x80);
+            } else if (flags & SSD1306_FLAG_DOUBLE) {
+                c = (c & 0x01) | ((c & 0x01) << 1) | ((c & 0x02) << 1) | ((c & 0x02) << 2) | ((c & 0x04) << 2) |
+                    ((c & 0x04) << 3) | ((c & 0x08) << 3) | ((c & 0x08) << 4);
+            }
             i2c_write(c);
-            i2c_write(c);
+            if (flags & SSD1306_FLAG_DOUBLE) i2c_write(c);
         }
         i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
-        i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
+        if (flags & SSD1306_FLAG_DOUBLE) i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
         i2c_stop();
     }
 }
