@@ -9,11 +9,15 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
+#include <avr/pgmspace.h>
+
 enum app_state_t {
     MAINLOOP,
     MENU
 };
 
+extern const char app_version[] PROGMEM;
 void app_state_next(enum app_state_t next);
+void app_wakeup(uint8_t initial);
 
 #endif // _MAIN_H

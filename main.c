@@ -20,6 +20,8 @@
 #define VCC_MIN 280 // minimum voltage: 2.80V
 #define VCC_MAX 370 // maximum voltage: 3.70V
 
+const char app_version[] PROGMEM = "V25 - 2024-12-17";
+
 // show battery status
 static uint8_t oldPct = 0;
 static uint8_t vccPct = 0;
@@ -41,6 +43,16 @@ static void writeBattery(uint8_t pct) {
 
 static uint8_t tick;
 static uint16_t co2max = 0;
+static uint16_t lastThreshold = 2000;
+static uint8_t belowThresholdSecs = 0;
+
+static void app_beep(uint16_t ms) {
+    PORTB |= (1 << PB3);
+    //uint64_t old_ms = timer_millis();
+    //while (timer_millis() - old_ms < 100);
+    while (ms >= 100) { _delay_ms(100); ms -= 100; }
+    PORTB &= ~(1 << PB3);
+}
 
 static void main_enter(void) {
     tick = 0;
@@ -91,6 +103,36 @@ static void main_loop(void) {
             SSD1306_writeInt(0, 2, SCD4x_VALUE_temp / 10, 10, 0x04, 2);
             SSD1306_writeInt(5, 2, SCD4x_VALUE_temp % 10, 10, 0x04, 0);
             SSD1306_writeInt(10, 2, SCD4x_VALUE_humidity, 10, 0x04, 2);
+
+            /* check threshold */
+            if (SCD4x_VALUE_co2 > lastThreshold + 2000) {
+                /* beep. */
+                // ... 6000-8000: 1x, 10.000-18.000: 2x, 20.000-24.000 3x, >=24.000: 4x
+                uint8_t cnt = 1;
+                if (SCD4x_VALUE_co2 >= 10000) cnt++;
+                if (SCD4x_VALUE_co2 >= 20000) cnt++;
+                if (SCD4x_VALUE_co2 >= 24000) cnt++;
+                while (cnt-- > 0) {
+                    app_beep(400);
+                    _delay_ms(200);
+                }
+
+                /* update threshold - use 2000ppm steps */
+                lastThreshold = SCD4x_VALUE_co2 - (SCD4x_VALUE_co2 % 2000);
+            } else if (SCD4x_VALUE_co2 < lastThreshold - 2000) {
+                if (belowThresholdSecs > 0) {
+                    belowThresholdSecs -= 5;    /* remember: we have one valid measurement every five seconds! */
+                    if (belowThresholdSecs == 0) {
+                        /* if less than last threshold for more than 60sec, reduce threshold by 2000ppm */
+                        if (lastThreshold >= 6000) lastThreshold -= 2000;
+                        /* ToDo: maybe beep short (100ms) to signal reducing co2 level? */
+                        app_beep(100);
+                    }
+                }
+            } else {
+                /* within range of lastThreshold +/- 1999, reset reduce counter */
+                belowThresholdSecs = 60;
+            }
         }
         if (tick % 10 == 0) {
             // update VCC display every ~10 seconds
@@ -114,37 +156,19 @@ void app_state_next(enum app_state_t next) {
     app_state = next;
 }
 
-int main(void) {
+void app_wakeup(uint8_t initial) {
     uint8_t err;
-
-    /* initialize time functions */
-    timer_init();
-
-    button_init();
-
-    // init buzzer
-    DDRB |= (1 << DDB3);
-    PORTB &= ~(1 << PB3);
-
-    /* give components enough time to start up */
-    _delay_ms(30);
-
-    /* initialize I²C bus */
-    i2c_init();
 
     /* initialize display */
     SSD1306_init();
     SSD1306_clear();
     SSD1306_on();
-    SSD1306_writeString(0, 0, PSTR("V24 - 2024-08-25"), 1);
+    SSD1306_writeString(0, 0, app_version, 1);
 
     // beep.
-    PORTB |= (1 << PB3);
-    uint64_t old_ms = timer_millis();
-    while (timer_millis() - old_ms < 100);
-    PORTB &= ~(1 << PB3);
+    app_beep(100);
 
-    _delay_ms(400);
+    //_delay_ms(400);
 
     if ((err = SCD4x_stopPeriodicMeasurement()) != 0) {
         SSD1306_writeInt(14, 1, err, 16, 0x00, 0);
@@ -166,8 +190,7 @@ int main(void) {
     }
 
     /* read serial number */
-    {
-        /* do this within separate block, to free memory afterwards */
+    if (initial) {
         uint8_t serial[6];
         SSD1306_writeString(0, 2, PSTR("SERIAL:"), 1);
         if ((err = SCD4x_getSerialNumber(serial)) != 0) {
@@ -204,7 +227,32 @@ int main(void) {
         SSD1306_writeChar(x++, 5, 'V', 0x00);
     }
 
+    /* reset max and threshold values after power-off */
+    lastThreshold = 2000;
+    belowThresholdSecs = 0;
+    co2max = 0;
+
     _delay_ms(3000);
+}
+
+int main(void) {
+    /* initialize time functions */
+    timer_init();
+
+    button_init();
+
+    // init buzzer
+    DDRB |= (1 << DDB3);
+    PORTB &= ~(1 << PB3);
+
+    /* give components enough time to start up */
+    _delay_ms(30);
+
+    /* initialize I²C bus */
+    i2c_init();
+
+    app_wakeup(1);
+
     main_enter();
 
     while(1) {

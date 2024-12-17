@@ -38,30 +38,30 @@ static void do_asc(void) {
 
 static void do_forced_recalibration(void) {
     SSD1306_clear();
-    SSD1306_writeString(0, 0, PSTR("==CALIBRATION=="), 1);
-    SSD1306_writeString(0, 2, PSTR("FORCE CALIBRATE"), 1);
-    SSD1306_writeString(0, 3, PSTR("TO 420 PPM CO2 ?"), 1);
-    SSD1306_writeString(1, 5, PSTR("CONTINUE"), 1);
-    SSD1306_writeString(0, 6, PSTR("*CANCEL"), 1);
+    //SSD1306_writeString(0, 0, PSTR("==CALIBRATION=="), 1);
+    SSD1306_writeString(0, 0, PSTR("FORCE CALIBRATE"), 1);
+    SSD1306_writeString(0, 1, PSTR("TO 420 PPM CO2 ?"), 1);
+    SSD1306_writeString(1, 3, PSTR("CONTINUE"), 1);
+    SSD1306_writeString(0, 4, PSTR("*CANCEL"), 1);
     timeout_ms = timer_millis();
     uint8_t subCursor = 1;
     while(1) {
         button_read();
         uint8_t btn = button_pressed();
         if (btn == 1) {
-            SSD1306_writeString(0, 5+subCursor, PSTR(" "), 1);
+            SSD1306_writeString(0, 3+subCursor, PSTR(" "), 1);
             subCursor++;
-            if (subCursor == 2) subCursor = 0;
-            SSD1306_writeString(0, 5+subCursor, PSTR("*"), 1);
+            subCursor %= 2; /* if (subCursor == 2) subCursor = 0; */
+            SSD1306_writeString(0, 3+subCursor, PSTR("*"), 1);
         } else if (btn == 2) {
             // long press...
             if (subCursor == 1) return;
             // else: do recalibration...
-            SSD1306_writeString(1, 5, PSTR("SAVING..."), 1);
+            SSD1306_writeString(1, 3, PSTR("SAVING..."), 1);
             _delay_ms(500);
             uint16_t res = SCD4x_performForcedRecalibration();
-            SSD1306_writeString(1, 5, PSTR("DONE:    "), 1);
-            SSD1306_writeInt(7, 5, (int32_t)res - 0x8000, 10, 0x00, 0);
+            SSD1306_writeString(1, 3, PSTR("DONE:    "), 1);
+            SSD1306_writeInt(7, 3, (int32_t)res - 0x8000, 10, 0x00, 0);
             _delay_ms(2000);
             return;
         }
@@ -70,7 +70,7 @@ static void do_forced_recalibration(void) {
 }
 
 static void do_altitude(void) {
-    SSD1306_writeInt(11, 3, altitude, 10, 0x02, 4);
+    SSD1306_writeInt(11, 2, altitude, 10, 0x02, 4);
     while(1) {
        button_read();
        uint8_t btn = button_pressed();
@@ -78,7 +78,7 @@ static void do_altitude(void) {
            // increase & update value
            altitude += 100;
            if (altitude > 3000) altitude = 0;
-           SSD1306_writeInt(11, 3, altitude, 10, 0x02, 4);
+           SSD1306_writeInt(11, 2, altitude, 10, 0x02, 4);
        } else if (btn == 2) {
            // save new altitude
            SCD4x_setSensorAltitude(altitude);
@@ -88,22 +88,22 @@ static void do_altitude(void) {
        }
     }
     // write non-inverted
-    SSD1306_writeInt(11, 3, altitude, 10, 0x00, 4);
+    SSD1306_writeInt(11, 2, altitude, 10, 0x00, 4);
 }
 
 static void do_selftest(void) {
     SSD1306_clear();
-    SSD1306_writeString(0, 0, PSTR("== SELF TEST =="), 1);
-    _delay_ms(500);
-    SSD1306_writeString(0, 2, PSTR("TESTING..."), 1);
+    //SSD1306_writeString(0, 0, PSTR("== SELF TEST =="), 1);
+    //_delay_ms(500);
+    SSD1306_writeString(0, 0, PSTR("TESTING..."), 1);
     uint16_t status = SCD4x_performSelfTest();
-    SSD1306_writeString(0, 2, PSTR("DONE.     "), 1);
-    SSD1306_writeString(0, 3, PSTR("STATUS:"), 1);
+    SSD1306_writeString(0, 0, PSTR("DONE.     "), 1);
+    SSD1306_writeString(0, 1, PSTR("STATUS:"), 1);
     if (status == 0) {
-        SSD1306_writeString(8, 3, PSTR("OK"), 1);
+        SSD1306_writeString(8, 1, PSTR("OK"), 1);
     } else {
-        SSD1306_writeString(8, 3, PSTR("ERR"), 1);
-        SSD1306_writeInt(12, 3, status, 10, 0x00, 0);
+        SSD1306_writeString(8, 1, PSTR("ERR"), 1);
+        SSD1306_writeInt(12, 1, status, 10, 0x00, 0);
     }
     _delay_ms(2000);
 }
@@ -131,30 +131,30 @@ DO_SLEEP:
         if (btn == 2) break;    // long press
         if (timer_millis() - btn_ts > 2000) goto DO_SLEEP;
     }
-    SSD1306_on();
+
     SCD4x_wakeUp();
+    app_wakeup(0);
 }
 
 void menu_enter(void) {
     SSD1306_clear();
-    SSD1306_writeString(1, 0, PSTR("INTV: 5 SEC"), 1);
-    SSD1306_writeString(1, 1, PSTR("AUTO-CALIB:"), 1);
+    SSD1306_writeString(1, 0, PSTR("AUTO-CALIB:"), 1);
     asc_status = SCD4x_getAutomaticSelfCalibration();
     switch (asc_status) {
-        case SCD4x_ASC_DISABLED: SSD1306_writeString(13, 1, PSTR("OFF"), 1); break;
-        case SCD4x_ASC_ENABLED: SSD1306_writeString(13, 1, PSTR("ON"), 1); break;
-        default: SSD1306_writeString(13, 1, PSTR("???"), 1); break;
+        case SCD4x_ASC_DISABLED: SSD1306_writeString(13, 0, PSTR("OFF"), 1); break;
+        case SCD4x_ASC_ENABLED: SSD1306_writeString(13, 0, PSTR("ON"), 1); break;
+        default: SSD1306_writeString(13, 0, PSTR("???"), 1); break;
     }
-    SSD1306_writeString(1, 2, PSTR("FORCE CALIBRATE"), 1);
-    SSD1306_writeString(1, 3, PSTR("ALTITUDE:"), 1);
+    SSD1306_writeString(1, 1, PSTR("FORCE CALIBRATE"), 1);
+    SSD1306_writeString(1, 2, PSTR("ALTITUDE:"), 1);
     altitude = SCD4x_getSensorAltitude();
-    SSD1306_writeInt(11, 3, altitude, 10, 0x00, 4);
+    SSD1306_writeInt(11, 2, altitude, 10, 0x00, 4);
 
-    SSD1306_writeString(1, 4, PSTR("SELF TEST"), 1);
-    SSD1306_writeString(1, 5, PSTR("POWER OFF"), 1);
-    SSD1306_writeString(1, 6, PSTR("BACK"), 1);
-    cursor = 6;
-    SSD1306_writeString(0, 6, PSTR("*"), 1);
+    SSD1306_writeString(1, 3, PSTR("SELF TEST"), 1);
+    SSD1306_writeString(1, 4, PSTR("POWER OFF"), 1);
+    SSD1306_writeString(1, 5, PSTR("BACK"), 1);
+    cursor = 5;
+    SSD1306_writeString(0, 5, PSTR("*"), 1);
     timeout_ms = timer_millis();
 }
 
@@ -164,37 +164,36 @@ void menu_loop(void) {
     if (btn == 1) {
         SSD1306_writeString(0, cursor, PSTR(" "), 1);
         cursor++;
-        if (cursor == 7) cursor = 0;
-        if (cursor == 0) cursor++; // skip over non-implemented items...
+        cursor %= 6; /* if (cursor == 6) cursor = 0; */
         SSD1306_writeString(0, cursor, PSTR("*"), 1);
     } else if (btn == 2) {
-        if (cursor == 1) {
+        if (cursor == 0) {
             // set ASC
             do_asc();
             timeout_ms = timer_millis();
             return;
-        } else if (cursor == 2) {
+        } else if (cursor == 1) {
             // force calibration
             do_forced_recalibration();
             menu_enter();
             return;
-        } else if (cursor == 3) {
+        } else if (cursor == 2) {
             // set altitude test
             do_altitude();
             timeout_ms = timer_millis();
             return;
-        } else if (cursor == 4) {
+        } else if (cursor == 3) {
             // self test
             do_selftest();
             menu_enter();
             return;
-        } else if (cursor == 5) {
+        } else if (cursor == 4) {
             // power off
             do_poweroff();
             // returning here means, device was woken up
             app_state_next(MAINLOOP);
             return;
-        } else if (cursor == 6) {
+        } else if (cursor == 5) {
             // back
             app_state_next(MAINLOOP);
             return;
