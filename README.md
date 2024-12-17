@@ -93,6 +93,6 @@ Zudem ist eine Variante angedacht, welche auf einen Langzeitbetrieb ausgelegt is
 
 ## ToDo
 
-Stand: 25.08.2024
+Stand: 17.12.2024
 
 - [ ] 3D-Druckvorlage für Gehäuse bereitstellen
