@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/power.h>
 #include <avr/sleep.h>
 #include <util/delay.h>
 #include "SCD4x.h"
@@ -29,8 +30,8 @@ static void do_asc(void) {
     SCD4x_setAutomaticSelfCalibration(asc_status == SCD4x_ASC_DISABLED ? SCD4x_ASC_ENABLED : SCD4x_ASC_DISABLED);
     asc_status = SCD4x_getAutomaticSelfCalibration();
     switch (asc_status) {
-        case SCD4x_ASC_DISABLED: SSD1306_writeString(13, 1, PSTR("OFF"), 1); break;
-        case SCD4x_ASC_ENABLED: SSD1306_writeString(13, 1, PSTR("ON "), 1); break;
+        case SCD4x_ASC_DISABLED: SSD1306_writeString(13, 0, PSTR("OFF"), 1); break;
+        case SCD4x_ASC_ENABLED: SSD1306_writeString(13, 0, PSTR("ON "), 1); break;
         default: SSD1306_writeString(13, 1, PSTR("???"), 1); break;
     }
     if (asc_status != SCD4x_ASC_UNKNOWN) SCD4x_persistSettings();
@@ -116,14 +117,14 @@ static void do_poweroff(void) {
     _delay_ms(2000);
     SSD1306_off();
     SCD4x_powerDown();
+    
 DO_SLEEP:
-    cli();
+    power_all_disable();
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    sleep_enable();
-    sei();
-    sleep_cpu();
-    sleep_disable();
+    sleep_mode();
+
     // when we get here, we've been woken up
+    power_all_enable();
     btn_ts = timer_millis();
     while(1) {
         button_read();
@@ -171,33 +172,28 @@ void menu_loop(void) {
             // set ASC
             do_asc();
             timeout_ms = timer_millis();
-            return;
         } else if (cursor == 1) {
             // force calibration
             do_forced_recalibration();
             menu_enter();
-            return;
         } else if (cursor == 2) {
             // set altitude test
             do_altitude();
             timeout_ms = timer_millis();
-            return;
         } else if (cursor == 3) {
             // self test
             do_selftest();
             menu_enter();
-            return;
         } else if (cursor == 4) {
             // power off
             do_poweroff();
             // returning here means, device was woken up
             app_state_next(MAINLOOP);
-            return;
         } else if (cursor == 5) {
             // back
             app_state_next(MAINLOOP);
-            return;
         }
+        return;
     }
     if (timer_millis() - timeout_ms > 10000) {
         // timeout

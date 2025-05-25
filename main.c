@@ -20,7 +20,16 @@
 #define VCC_MIN 280 // minimum voltage: 2.80V
 #define VCC_MAX 370 // maximum voltage: 3.70V
 
-const char app_version[] PROGMEM = "V25 - 2024-12-17";
+typedef enum {
+    BEEP_SHORT = 1,
+    BEEP_RELAX = 2,
+    BEEP_WARN = 4,
+} beep_t;
+
+#define BEEP_PWM 1
+#undef BEEP_PIEZO
+
+const char app_version[] PROGMEM = "V28 - 2025-05-25";
 
 // show battery status
 static uint8_t oldPct = 0;
@@ -46,12 +55,26 @@ static uint16_t co2max = 0;
 static uint16_t lastThreshold = 2000;
 static uint8_t belowThresholdSecs = 0;
 
-static void app_beep(uint16_t ms) {
+static void app_beep(const beep_t t) {
+    uint8_t len;
+#if defined(BEEP_PIEZO)
     PORTB |= (1 << PB3);
-    //uint64_t old_ms = timer_millis();
-    //while (timer_millis() - old_ms < 100);
     while (ms >= 100) { _delay_ms(100); ms -= 100; }
     PORTB &= ~(1 << PB3);
+#elif defined(BEEP_PWM)
+    TCCR1 = 1<<CS10;
+
+    OCR1C = t == BEEP_WARN ? 250 : 220; // 1 MHz / 4 kHz = 250...
+    OCR1B = OCR1C/2; // ACR1C/2 for 50% duty cycle
+    //_delay_ms(len);
+    for (len=t; len>0; len--) _delay_ms(100);
+    OCR1C = t == BEEP_WARN ? 220 : 250; // 1 MHz / 4 kHz = 250...
+    OCR1B = OCR1C/2; // ACR1C/2 for 50% duty cycle
+    //_delay_ms(len);
+    for (len=t; len>0; len--) _delay_ms(100);
+
+    TCCR1 = 0;
+#endif
 }
 
 static void main_enter(void) {
@@ -113,7 +136,7 @@ static void main_loop(void) {
                 if (SCD4x_VALUE_co2 >= 20000) cnt++;
                 if (SCD4x_VALUE_co2 >= 24000) cnt++;
                 while (cnt-- > 0) {
-                    app_beep(400);
+                    app_beep(BEEP_WARN);
                     _delay_ms(200);
                 }
 
@@ -125,8 +148,7 @@ static void main_loop(void) {
                     if (belowThresholdSecs == 0) {
                         /* if less than last threshold for more than 60sec, reduce threshold by 2000ppm */
                         if (lastThreshold >= 6000) lastThreshold -= 2000;
-                        /* ToDo: maybe beep short (100ms) to signal reducing co2 level? */
-                        app_beep(100);
+                        app_beep(BEEP_RELAX);
                     }
                 }
             } else {
@@ -166,9 +188,7 @@ void app_wakeup(uint8_t initial) {
     SSD1306_writeString(0, 0, app_version, 1);
 
     // beep.
-    app_beep(100);
-
-    //_delay_ms(400);
+    app_beep(BEEP_RELAX);
 
     if ((err = SCD4x_stopPeriodicMeasurement()) != 0) {
         SSD1306_writeInt(14, 1, err, 16, 0x00, 0);
@@ -218,13 +238,13 @@ void app_wakeup(uint8_t initial) {
     }
 
     {
-        SSD1306_writeString(0, 5, PSTR("VCC:"), 1);
+        SSD1306_writeString(0, 5, PSTR("VCC: 0.00 V"), 1);
         uint16_t vcc = VCC_get();
         uint8_t x;
         x = SSD1306_writeInt(5, 5, vcc / 100, 10, 0x00, 0);
-        SSD1306_writeChar(x++, 5, '.', 0x00);
-        x = SSD1306_writeInt(x, 5, vcc % 100, 10, 0x00, 0);
-        SSD1306_writeChar(x++, 5, 'V', 0x00);
+        //SSD1306_writeChar(x++, 5, '.', 0x00);
+        x = SSD1306_writeInt(++x, 5, vcc % 100, 10, SSD1306_FLAG_FILL_ZERO, 2);
+        //SSD1306_writeChar(x++, 5, 'V', 0x00);
     }
 
     /* reset max and threshold values after power-off */
@@ -242,11 +262,17 @@ int main(void) {
     button_init();
 
     // init buzzer
+#if defined(BEEP_PIEZO)
+    // PB3: piezo
     DDRB |= (1 << DDB3);
     PORTB &= ~(1 << PB3);
-
-    /* give components enough time to start up */
-    _delay_ms(30);
+#elif defined(BEEP_PWM)
+    // PB4: PWM with OC1B pin (PB4)
+    DDRB |= (1 << DDB4);
+    PORTB &= ~(1 << PB4);
+    TCCR1 = 0;
+    GTCCR = 1 << PWM1B | 1 << COM1B1;
+#endif
 
     /* initialize I²C bus */
     i2c_init();
@@ -255,7 +281,7 @@ int main(void) {
 
     main_enter();
 
-    while(1) {
+    for (;;) {
         button_read();
         if (app_lastState != app_state) {
             // state transition

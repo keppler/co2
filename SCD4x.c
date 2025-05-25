@@ -191,13 +191,13 @@ uint16_t SCD4x_performSelfTest(void) {
 }
 
 void SCD4x_powerDown(void) {
-    _readRegister(SCD4x_COMMAND_POWER_DOWN, NULL, 0, NULL, 0, 0);
+    _readRegister(SCD4x_COMMAND_POWER_DOWN, NULL, 0, NULL, 0, 1);
 }
 
 void SCD4x_wakeUp(void) {
-    _readRegister(SCD4x_COMMAND_WAKE_UP, NULL, 0, NULL, 0, 0);
+    _readRegister(SCD4x_COMMAND_WAKE_UP, NULL, 0, NULL, 0, 20);
 }
 
 void SCD4x_persistSettings(void) {
-    _readRegister(SCD4x_COMMAND_PERSIST_SETTINGS, NULL, 0, NULL, 0, 0);
+    _readRegister(SCD4x_COMMAND_PERSIST_SETTINGS, NULL, 0, NULL, 0, 800);
 }

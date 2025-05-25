@@ -4,6 +4,7 @@
 #define SSD1306_FLAG_PGM      0x01
 #define SSD1306_FLAG_INVERTED 0x02
 #define SSD1306_FLAG_DOUBLE   0x04
+#define SSD1306_FLAG_FILL_ZERO 0x08
 
 void SSD1306_init(void);
 void SSD1306_writeImg(uint8_t width, uint8_t height, const uint8_t *img, uint8_t fromFlash);

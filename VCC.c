@@ -9,6 +9,14 @@
  * - Microchip Application Note AN2447 (https://ww1.microchip.com/downloads/en/Appnotes/00002447A.pdf)
  */
 uint16_t VCC_get(void) {
+	/*
+	By default, the successive approximation circuitry requires an input clock frequency between 50
+	kHz and 200 kHz to get maximum resolution.
+	*/
+
+	// Enable ADC, set prescaller to /8 which will give an ADC clock of 1mHz/8 = 125kHz
+	ADCSRA = _BV(ADEN) | _BV(ADPS1) | _BV(ADPS0);
+
 	/* Select ADC inputs */
 #if defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
     // BITS:  76543210
@@ -23,15 +31,7 @@ uint16_t VCC_get(void) {
 #else
 #error Target not supported
 #endif
-	
-	/*
-	By default, the successive approximation circuitry requires an input clock frequency between 50
-	kHz and 200 kHz to get maximum resolution.
-	*/	
-				
-	// Enable ADC, set prescaller to /8 which will give an ADC clock of 1mHz/8 = 125kHz
-	ADCSRA = _BV(ADEN) | _BV(ADPS1) | _BV(ADPS0);
-	
+
 	/*
 		After switching to internal voltage reference the ADC requires a settling time of 1ms before
 		measurements are stable. Conversions starting before this may not be reliable. The ADC must
@@ -68,7 +68,7 @@ uint16_t VCC_get(void) {
 	// Vcc10 = ((1.1v * 1024) / ADC ) * 10				->convert to 1 decimal fixed point
 	// Vcc10 = ((11   * 1024) / ADC )				->simplify to all 16-bit integer math
 				
-	uint16_t vccx100 = (uint16_t) ( (110L * 1024L) / adc); 
+	uint16_t vccx100 = (uint16_t) ( (110L * 1024L) / adc);
 	
 	/*	
 		Note that the ADC will not automatically be turned off when entering other sleep modes than Idle

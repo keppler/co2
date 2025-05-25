@@ -274,7 +274,7 @@ uint8_t SSD1306_writeInt(uint8_t x, uint8_t y, int16_t value, uint8_t base, uint
 
 	if (tmp_value < 0) *ptr++ = '-';
 
-    while (ptr - result < len) *ptr++ = ' ';
+    while (ptr - result < len) *ptr++ = (flags & SSD1306_FLAG_FILL_ZERO) ? '0' : ' ';
 
     *ptr-- = '\0';
 	while (ptr1 < ptr) {
