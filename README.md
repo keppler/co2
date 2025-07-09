@@ -2,7 +2,7 @@
 
 ![Build workflow status](https://github.com/keppler/co2/actions/workflows/cmake-avr.yml/badge.svg)
 
-![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/sensor.webp)
+![fertiger CO₂-Sensor](https://github.com/keppler/co2/raw/master/docs/sensor-v2.webp)
 
 ## Hintergrund
 
@@ -51,11 +51,15 @@ Zur Anzeige kommt ein schlichtes OLED-Display vom Typ _SSD1306_ zum Einsatz. Auc
 
 Für den ersten Prototypen reichte eine simple Lochrasterplatine, da im Prinzip nur die Stromversorgung und der I²C-Bus vom Controller zum Sensor und Display (parallel) durchverdrahtet werden mussten.
 
-### Variante "Komfort"
+![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/docs/sensor.webp)
 
-Da noch nicht alle Pins genutzt wurden, umfasst die "Komfort-Schaltung" noch einen Piezo-Piepser sowie eine Taste zur Quittierung bzw. Konfiguration.
+### Variante "Komfort" (Version 1.1)
 
--- ToDo: ATtiny-Schaltplan --
+Da noch nicht alle Pins genutzt wurden, umfasst die "Komfort-Schaltung" noch einen Piezo-Piepser sowie eine Taste zur Quittierung bzw. Konfiguration. Zudem wurde eine eigene Platine gestaltet, um die Komponenten ordentlich zu verbauen:
+
+![Platine](https://github.com/keppler/co2/raw/master/docs/pcb.webp)
+
+Die Platine kann per SMD oder "klassisch" mit Lötkolben bestückt werden.
 
 ## Die Software
 
@@ -68,11 +72,11 @@ avrdude -c usbasp -p t85 -P usb -v -U lfuse:w:0x62:m -U hfuse:w:0xd7:m -U efuse:
 avrdude -c usbasp -p t85 -P usb -v -U lfuse:w:0x62:m -U hfuse:w:0xd7:m -U efuse:w:0xff:m -U eeprom:w:co2-scd41.eep:i
 ```
 
-Aktuell belegt die Software mit 8.162 Bytes 99,6% des verfügbaren Speichers, somit ist ohne größere Tricks vorerst keine nennenswerte Erweiterung der Funktionalität möglich. Anders formuliert: die verfügbaren Ressourcen werden optimal ausgenutzt. :-)
+Aktuell belegt die Software mit 8.188 Bytes praktisch den kompletten verfügbaren Speicher, somit ist ohne größere Tricks vorerst keine nennenswerte Erweiterung der Funktionalität möglich. Anders formuliert: die verfügbaren Ressourcen werden optimal ausgenutzt. :-)
 
 ## Bedienungsanleitung
 
-Nach dem Anschluss an die Stromversorgung startet der Sensor: der Piezo-Piepser wird kurz getestet (0,1s), die Seriennummer des SCD4x-Sensors sowie die Batteriespannung wird ausgelesen und angezeigt, anschließend wechselt die Software in die automatische Messung. Die Daten werden alle 5 Sekunden aktualisiert, der höchste gemessene CO₂-Wert wird dauerhaft angezeigt.
+Nach dem Anschluss an die Stromversorgung startet der Sensor: der Piezo-Piepser wird kurz getestet, die Seriennummer des SCD4x-Sensors sowie die Batteriespannung wird ausgelesen und angezeigt, anschließend wechselt die Software in die automatische Messung. Die Daten werden alle 5 Sekunden aktualisiert, der höchste gemessene CO₂-Wert wird dauerhaft angezeigt.
 
 Der Button unterscheidet zwischen kurzer Betätigung (>50ms) und langer Betätigung (>1s). In den meisten Fällen wird ein kurzer Drücker zur Auwahl und ein langer Drücker zur Bestätigung genutzt.
 
@@ -82,17 +86,17 @@ Aus der Messung heraus erreicht man über einen kurzen Drücker das Menü:
 - **`FORCE CALIBRATE`**: Kalibrierung mit einer CO₂-Konzentration von 420ppm (Außenluft) erzwingen. Wichtig ist hierfür, dass der Sensor seit mindestens 3 Minuten durchgehend an der Außenluft betrieben wird.
 - **`ALTITUDE: xxx`**: Einstellung der Höhe (verbessert die Genauigkeit der CO₂-Messung). Kann in 100m-Schritten von 0-3000m eingestellt werden, die Einstellung wird dauerhaft im Sensor gespeichert.
 - **`SELF TEST`**: Selbsttest des SCD41-Sensors ausführen. Dieser Vorgang dauert 10 Sekunden und sollte eigentlich immer `OK` zurückgeben.
-- **`POWER OFF`**: Gerät ausschalten. Im Standby benötigt die Schaltung nur 8,85µA (das liegt in der Größenordnung der Selbstentladung der Batterie). Mit einen langen Tastendruck kann man den Sensor wieder einschalten.
+- **`POWER OFF`**: Gerät ausschalten. Im Standby benötigt die Schaltung nur knapp 15µA (das liegt in der Größenordnung der Selbstentladung der Batterie). Mit einen langen Tastendruck kann man den Sensor wieder einschalten.
 - **`BACK`**: zurück zur Messung (erfolgt ansonsten auch automatisch nach 10 Sekunden)
 
 ## Ausblick
 
-Eine mögliche Erweiterung wäre noch ein kleiner Speicher und ein NFC-Modem, um den gemessenen _CO₂_-Pegel über die Zeit aufzuzeichnen und per NFC/RFID auslesbar zu machen.
+Eine mögliche Erweiterung wäre noch ein kleiner Speicher und ein NFC-Interface, um den gemessenen _CO₂_-Pegel über die Zeit aufzuzeichnen und per NFC/RFID auslesbar zu machen.
 
 Zudem ist eine Variante angedacht, welche auf einen Langzeitbetrieb ausgelegt ist (hier stellt die Kalibrierung aber durchaus noch eine Herausforderung dar).
 
 ## ToDo
 
-Stand: 17.12.2024
+Stand: 09.07.2025
 
 - [ ] 3D-Druckvorlage für Gehäuse bereitstellen
