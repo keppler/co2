@@ -29,7 +29,7 @@ typedef enum {
 #define BEEP_PWM 1
 #undef BEEP_PIEZO
 
-const char app_version[] PROGMEM = "V28 - 2025-05-25";
+const char app_version[] PROGMEM = "V29 - 2025-07-09";
 
 // show battery status
 static uint8_t oldPct = 0;
@@ -59,21 +59,22 @@ static void app_beep(const beep_t t) {
     uint8_t len;
 #if defined(BEEP_PIEZO)
     PORTB |= (1 << PB3);
-    while (ms >= 100) { _delay_ms(100); ms -= 100; }
+    len = t == BEEP_WARN ? 600 : 200;
+    while (len >= 100) { _delay_ms(100); len -= 100; }
     PORTB &= ~(1 << PB3);
 #elif defined(BEEP_PWM)
     TCCR1 = 1<<CS10;
+    GTCCR = 1 << PWM1B | 1 << COM1B1;
 
     OCR1C = t == BEEP_WARN ? 250 : 220; // 1 MHz / 4 kHz = 250...
-    OCR1B = OCR1C/2; // ACR1C/2 for 50% duty cycle
-    //_delay_ms(len);
+    OCR1B = OCR1C/2; // OCR1C/2 for 50% duty cycle
     for (len=t; len>0; len--) _delay_ms(100);
     OCR1C = t == BEEP_WARN ? 220 : 250; // 1 MHz / 4 kHz = 250...
-    OCR1B = OCR1C/2; // ACR1C/2 for 50% duty cycle
-    //_delay_ms(len);
+    OCR1B = OCR1C/2; // OCR1C/2 for 50% duty cycle
     for (len=t; len>0; len--) _delay_ms(100);
 
     TCCR1 = 0;
+    GTCCR = 0;
 #endif
 }
 
@@ -266,12 +267,16 @@ int main(void) {
     // PB3: piezo
     DDRB |= (1 << DDB3);
     PORTB &= ~(1 << PB3);
+    // PB4: unused PWM buzzer
+    DDRB &= ~(1 << DDB4);   // set port mode to INPUT
+    PORTB |= (1 << PB4);    // enable pull-up
 #elif defined(BEEP_PWM)
+    // PB3: unused piezo
+    DDRB &= ~(1 << DDB3);   // set port mode to INPUT
+    PORTB |= (1 << PB3);    // enable pull-up
     // PB4: PWM with OC1B pin (PB4)
     DDRB |= (1 << DDB4);
     PORTB &= ~(1 << PB4);
-    TCCR1 = 0;
-    GTCCR = 1 << PWM1B | 1 << COM1B1;
 #endif
 
     /* initialize I²C bus */

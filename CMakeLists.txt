@@ -7,18 +7,38 @@
 # Thanks to https://www.kuon.ch/post/2018-07-11-avr-cmake/ for important
 # hints on using CMake with AVR toolchain! :)
 
+# -DAVR_PATH=/opt/...
+# https://github.com/ZakKemble/avr-gcc-build/releases
+
 cmake_minimum_required(VERSION 3.11)
 
 project("co2-scd41")
 enable_language(C ASM)
 
+if(NOT DEFINED CPU)
+    message(FATAL_ERROR "Variable CPU is not set")
+elseif(NOT CPU MATCHES "^attiny85|attiny1614$")
+    message(FATAL_ERROR "CPU not supported")
+endif()
+
+set(MCU ${CPU})
 set(F_CPU 1000000UL)
-set(MCU attiny85)
 
 # Use AVR GCC toolchain
+if(DEFINED AVR_PATH)
+    set(CMAKE_FIND_ROOT_PATH  ${AVR_PATH})
+    message("Using AVR toolchain: ${AVR_PATH}")
+endif()
+find_program(AVR_CC avr-gcc REQUIRED)
+find_program(AVR_OBJCOPY avr-objcopy REQUIRED)
+find_program(AVR_OBJDUMP avr-objdump REQUIRED)
+find_program(AVR_SIZE avr-size REQUIRED)
+find_program(AVR_STRIP avr-strip REQUIRED)
+
 set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_C_COMPILER avr-gcc)
-set(CMAKE_ASM_COMPILER avr-gcc)
+set(CMAKE_SYSTEM_PROCESSOR avr)
+set(CMAKE_C_COMPILER ${AVR_CC})
+set(CMAKE_ASM_COMPILER ${AVR_CC})
 
 # Pass defines to compiler
 add_definitions(
@@ -58,29 +78,34 @@ add_executable(${PROJECT_NAME}
         button.c
         main.c
         menu.c
-        i2cmaster.S
+#        i2cmaster.S
         timer.c
         SSD1306.c
         SCD4x.c
         VCC.c
 )
 
+if(CPU STREQUAL "attiny85")
+    # add software I²C only when required
+    target_sources(${PROJECT_NAME} PRIVATE i2cmaster.S)
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.elf)
 
 # Strip binary for upload
-add_custom_target(strip ALL avr-strip ${PROJECT_NAME}.elf
-        COMMAND avr-size -C --mcu=${MCU} ${PROJECT_NAME}.elf
+add_custom_target(strip ALL ${AVR_STRIP} ${PROJECT_NAME}.elf
+        COMMAND AVR_SIZE=${AVR_SIZE} sh ${CMAKE_SOURCE_DIR}/avr-mem.sh ${PROJECT_NAME}.elf ${MCU}
         DEPENDS ${PROJECT_NAME}
 )
 
 # Transform binary into hex file, we ignore the eeprom segments in the step
-add_custom_target(hex ALL avr-objcopy -R .eeprom -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
+add_custom_target(hex ALL ${AVR_OBJCOPY} -R .eeprom -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.hex
         DEPENDS strip
 )
 
 # Transform binary into hex file, this is the eeprom part (empty if you don't
 # use eeprom static variables)
-add_custom_target(eeprom avr-objcopy -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.eep
+add_custom_target(eeprom ${AVR_OBJCOPY} -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.eep
         DEPENDS strip)
 
 # Clean extra files

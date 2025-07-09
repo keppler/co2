@@ -114,13 +114,13 @@ static void do_poweroff(void) {
 
     SSD1306_clear();
     SSD1306_writeString(0, 0, PSTR("== POWER OFF =="), 1);
+    SCD4x_powerDown();
     _delay_ms(2000);
     SSD1306_off();
-    SCD4x_powerDown();
-    
+
 DO_SLEEP:
-    power_all_disable();
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    power_all_disable();
     sleep_mode();
 
     // when we get here, we've been woken up
