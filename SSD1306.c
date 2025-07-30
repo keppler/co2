@@ -40,7 +40,8 @@
 static const uint8_t FONT_MEM _font[][7] = {
 	{0x00,0x1C,0x3E,0x63,0x41,0x00,0x00},	// 0x28 (
 	{0x00,0x41,0x63,0x3E,0x1C,0x00,0x00},	// 0x29 )
-	{0x08,0x2A,0x3E,0x1C,0x1C,0x3E,0x2A},	// 0x2A *
+	// {0x08,0x2A,0x3E,0x1C,0x1C,0x3E,0x2A},	// 0x2A *
+	{0x18,0x18,0x18,0xFF,0x7E,0x3C,0x18},	// 0x2A * => ▶
 	{0x08,0x08,0x3E,0x3E,0x08,0x08,0x00},	// 0x2B +
 	{0x00,0xA0,0xE0,0x60,0x00,0x00,0x00},	// 0x2C ,
 	{0x08,0x08,0x08,0x08,0x08,0x08,0x00},	// 0x2D -
@@ -176,8 +177,8 @@ void SSD1306_writeChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t flags) {
                 c = (c & 0x01) | ((c & 0x01) << 1) | ((c & 0x02) << 1) | ((c & 0x02) << 2) | ((c & 0x04) << 2) |
                     ((c & 0x04) << 3) | ((c & 0x08) << 3) | ((c & 0x08) << 4);
             }
-            i2c_write(c);
-            if (flags & SSD1306_FLAG_DOUBLE) i2c_write(c);
+        	i2c_write(flags & SSD1306_FLAG_LIGHT ? c & 0xAA : c);
+        	if (flags & SSD1306_FLAG_DOUBLE) i2c_write(flags & SSD1306_FLAG_LIGHT ? c & 0x55 : c);
         }
         i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
         if (flags & SSD1306_FLAG_DOUBLE) i2c_write((flags & SSD1306_FLAG_INVERTED) ? 0xFF : 0x00);
@@ -258,13 +259,13 @@ void SSD1306_init(void) {
  * Written by Lukás Chmela
  * Released under GPLv3.
  */
-uint8_t SSD1306_writeInt(uint8_t x, uint8_t y, int16_t value, uint8_t base, uint8_t flags, uint8_t len) {
+uint8_t SSD1306_writeInt(uint8_t x, uint8_t y, int32_t value, uint8_t base, uint8_t flags, uint8_t len) {
 	static const char PROGMEM data[] = "ZYXWVUTSRQPONMLKJIHGFEDCBA9876543210123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	char result[17];
 	if (base < 2 || base > 36 || len > 16) return(x);
 
 	char *ptr = result, *ptr1 = result, tmp_char;
-	int16_t tmp_value;
+	int32_t tmp_value;
 
 	do {
 		tmp_value = value;
