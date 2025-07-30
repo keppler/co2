@@ -28,7 +28,7 @@ typedef enum {
 
 extern uint16_t SCD4x_VALUE_co2;
 extern int16_t SCD4x_VALUE_temp;
-extern uint16_t SCD4x_VALUE_humidity;
+extern uint8_t SCD4x_VALUE_humidity;
 
 uint8_t SCD4x_startPeriodicMeasurement(void);
 uint8_t SCD4x_stopPeriodicMeasurement(void);

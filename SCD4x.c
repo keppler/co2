@@ -33,7 +33,7 @@
 
 uint16_t SCD4x_VALUE_co2 = 0;
 int16_t SCD4x_VALUE_temp = 0;
-uint16_t SCD4x_VALUE_humidity = 0;
+uint8_t SCD4x_VALUE_humidity = 0;
 
 static uint8_t _computeCRC8(const uint8_t *data, uint8_t len) {
     uint8_t crc = 0xFF; // initialize with 0xff
@@ -70,8 +70,6 @@ static uint8_t _readRegister(uint16_t registerAddress, const uint16_t *data, uin
         i2c_write(_computeCRC8(buf, 2)); // CRC
     }
 
-    i2c_stop();
-
     while (delayMillis > 0) {
         // workaround against overflow on large delays (i.e. 10000ms on self test)
         uint16_t wait = delayMillis > 1000 ? 1000 : delayMillis;
@@ -79,7 +77,10 @@ static uint8_t _readRegister(uint16_t registerAddress, const uint16_t *data, uin
         delayMillis -= wait;
     }
 
-    if (response == NULL || responseCount == 0) return 0;
+    if (response == NULL || responseCount == 0) {
+        i2c_stop();
+        return 0;
+    }
 
     uint8_t ret = 0;
     i2c_rep_start(SCD4x_ADDRESS + I2C_READ);
@@ -148,8 +149,11 @@ uint8_t SCD4x_getData(void) {
     }
 
     SCD4x_VALUE_co2 = data[0];
-    SCD4x_VALUE_temp = -450 + (((float)data[1]) * 175 / 6553.6);
-    SCD4x_VALUE_humidity = ((float)data[2]) * 100 / 65536;
+    SCD4x_VALUE_temp = ((int32_t)data[1] * 1750L / 65536L) - 450;
+    int32_t h = ((int32_t)data[2]) * 100L / 65536L;
+    if (h < 0) h = 0;
+    if (h > 100) h = 100;
+    SCD4x_VALUE_humidity = h;
 
     return 0;
 }
