@@ -17,7 +17,7 @@ enable_language(C ASM)
 
 if(NOT DEFINED CPU)
     message(FATAL_ERROR "Variable CPU is not set")
-elseif(NOT CPU MATCHES "^attiny85|attiny1614$")
+elseif(NOT CPU MATCHES "^attiny85$")
     message(FATAL_ERROR "CPU not supported")
 endif()
 
@@ -78,17 +78,12 @@ add_executable(${PROJECT_NAME}
         button.c
         main.c
         menu.c
-#        i2cmaster.S
+        i2cmaster.S
         timer.c
         SSD1306.c
         SCD4x.c
         VCC.c
 )
-
-if(CPU STREQUAL "attiny85")
-    # add software I²C only when required
-    target_sources(${PROJECT_NAME} PRIVATE i2cmaster.S)
-endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.elf)
 
