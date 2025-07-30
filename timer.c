@@ -43,6 +43,10 @@ void timer_init(void) {
     sei();
 }
 
+void timer_reset(void) {
+    _millis = 0;
+}
+
 uint32_t timer_millis(void) {
     uint64_t m;
     cli();

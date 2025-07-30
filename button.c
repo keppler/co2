@@ -13,7 +13,7 @@
 #include "timer.h"
 
 #define BUTTON_DEBOUNCE_DELAY 50
-#define BUTTON_LONG 1000
+#define BUTTON_LONG 800
 
 #define BTN_PIN PB1
 
@@ -25,6 +25,14 @@ static uint8_t state = (1 << BTN_PIN); // initialize with HIGH
 
 ISR(PCINT0_vect) {
     // (pseudo) interrupt handler to wake up device from sleep mode
+}
+
+void button_reset(void) {
+    debounce = 0;
+    startPress = 0;
+    last_state = (1 << BTN_PIN);
+    pressed = 0;
+    state = (1 << BTN_PIN);
 }
 
 void button_init(void) {

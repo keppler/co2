@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 void timer_init(void);
+void timer_reset(void);
 uint32_t timer_millis(void);
 
 #endif // _TIMER_H

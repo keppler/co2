@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 
+void button_reset(void);
 void button_init(void);
 void button_read(void);
 uint8_t button_pressed(void);
