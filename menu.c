@@ -15,6 +15,7 @@
 #include <util/delay.h>
 #include "SCD4x.h"
 #include "SSD1306.h"
+#include "beep.h"
 #include "button.h"
 #include "main.h"
 #include "timer.h"
@@ -39,7 +40,6 @@ static void do_asc(void) {
 
 static void do_forced_recalibration(void) {
     SSD1306_clear();
-    //SSD1306_writeString(0, 0, PSTR("==CALIBRATION=="), 1);
     SSD1306_writeString(0, 0, PSTR("FORCE CALIBRATE"), 1);
     SSD1306_writeString(0, 1, PSTR("TO 420 PPM CO2 ?"), 1);
     SSD1306_writeString(1, 3, PSTR("CONTINUE"), 1);
@@ -94,8 +94,6 @@ static void do_altitude(void) {
 
 static void do_selftest(void) {
     SSD1306_clear();
-    //SSD1306_writeString(0, 0, PSTR("== SELF TEST =="), 1);
-    //_delay_ms(500);
     SSD1306_writeString(0, 0, PSTR("TESTING..."), 1);
     uint16_t status = SCD4x_performSelfTest();
     SSD1306_writeString(0, 0, PSTR("DONE.     "), 1);
@@ -113,9 +111,11 @@ static void do_poweroff(void) {
     uint64_t btn_ts;
 
     SSD1306_clear();
-    SSD1306_writeString(0, 0, PSTR("== POWER OFF =="), 1);
+    SSD1306_writeString(0, 0, PSTR("-- POWER OFF --"), 1);
     SCD4x_powerDown();
-    _delay_ms(2000);
+    _delay_ms(500);
+    beep(BEEP_SHUTDOWN);
+    _delay_ms(1000);
     SSD1306_off();
 
 DO_SLEEP:
@@ -125,6 +125,8 @@ DO_SLEEP:
 
     // when we get here, we've been woken up
     power_all_enable();
+    timer_reset();
+    button_reset();
     btn_ts = timer_millis();
     while(1) {
         button_read();
@@ -132,6 +134,9 @@ DO_SLEEP:
         if (btn == 2) break;    // long press
         if (timer_millis() - btn_ts > 2000) goto DO_SLEEP;
     }
+
+    // short beep here (to signal that device is powered up; it takes some time unless display is showing something)
+    beep(BEEP_SHORT);
 
     SCD4x_wakeUp();
     app_wakeup(0);
