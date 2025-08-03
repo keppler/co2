@@ -19,13 +19,11 @@
 
 static uint32_t debounce = 0;
 static uint32_t startPress = 0;
-static uint8_t last_state = (1 << BTN_PIN); // initialize with HIGH
+static uint8_t last_state = (1 << BTN_PIN); /* initialize with HIGH */
 static uint8_t pressed = 0;
-static uint8_t state = (1 << BTN_PIN); // initialize with HIGH
+static uint8_t state = (1 << BTN_PIN); /* initialize with HIGH */
 
-ISR(PCINT0_vect) {
-    // (pseudo) interrupt handler to wake up device from sleep mode
-}
+EMPTY_INTERRUPT(PCINT0_vect) /* empty interrupt handler to wake up device from sleep mode */
 
 void button_reset(void) {
     debounce = 0;
@@ -36,12 +34,12 @@ void button_reset(void) {
 }
 
 void button_init(void) {
-    // initialize button
-    DDRB &= ~(1 << DDB1);       // set port mode to INPUT
-    PORTB |= (1 << BTN_PIN);    // enable pull-up
+    /* initialize button */
+    DDRB &= ~(1 << DDB1);       /* set port mode to INPUT */
+    PORTB |= (1 << BTN_PIN);    /* enable pull-up */
 
-    GIMSK |= (1 << PCIE);       // enable pin change interrupts
-    PCMSK |= (1 << BTN_PIN);    // enable PCINTx interrupt
+    GIMSK |= (1 << PCIE);       /* enable pin change interrupts */
+    PCMSK |= (1 << BTN_PIN);    /* enable PCINTx interrupt */
 }
 
 void button_read(void) {
@@ -53,10 +51,10 @@ void button_read(void) {
         if (r != state) {
             state = r;
             if (state == 0) {
-                // button pressed
+                /* button pressed */
                 startPress = timer_millis();
             } else {
-                // button released
+                /* button released */
                 if (startPress > 0) pressed = 1;
             }
         } else if (state == 0 && startPress > 0 && timer_millis() - startPress >= BUTTON_LONG) {
