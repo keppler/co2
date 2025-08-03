@@ -75,6 +75,7 @@ add_compile_options(
 
 # Create one target
 add_executable(${PROJECT_NAME}
+        beep.c
         button.c
         main.c
         menu.c
