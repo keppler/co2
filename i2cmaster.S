@@ -83,26 +83,11 @@
 ;*************************************************************************
 	.stabs	"",100,0,0,i2c_delay_T2
 	.stabs	"i2cmaster.S",100,0,0,i2c_delay_T2
-	.func i2c_delay_T2	; delay 5.0 microsec with 8 Mhz crystal	
-i2c_delay_T2:
-#if F_CPU <= 100000UL
-;	5us (5 cycles):
-;	rjmp 1f      ; 2   "
-;1:	rjmp 2f      ; 2   "
-;2:  nop
-;	2us (2 cycles), should be sufficient for 1MHz; faster I2C...
-	nop
-	nop
-#else
-;	total 40 cycles = 5.0 microsec with 8 Mhz crystal
-	rcall i2c_delay_20cycles
-	rjmp  i2c_delay_20cycles
-#endif
-	.endfunc
-
-#if F_CPU > 100000UL
-  .func i2c_delay_20cycles ; 4 cycles
-i2c_delay_20cycles:
+	.func i2c_delay_T2	; delay 5.0 microsec with 4 Mhz crystal
+i2c_delay_T2:        ; 3 cycles
+#if F_CPU <= 1000000UL
+	ret          ; 4   "  total 7 cyles = 7.0 microsec with 1 Mhz crystal
+#elif F_CPU <= 4000000UL
 	rjmp 1f      ; 2   "
 1:	rjmp 2f      ; 2   "
 2:	rjmp 3f      ; 2   "
@@ -110,9 +95,42 @@ i2c_delay_20cycles:
 4:	rjmp 5f      ; 2   "
 5: 	rjmp 6f      ; 2   "
 6:	nop          ; 1   "
-	ret          ; 3   "
-	.endfunc     ; total 20 cyles
+	ret          ; 4   "  total 20 cyles = 5.0 microsec with 4 Mhz crystal
+#elif F_CPU <= 8000000UL
+    push r24     ; 2 cycle
+    ldi	 r24, 7  ; 1 cycle
+	nop          ; 1 cycle
+1:	sbiw r24, 1  ; 2 cycle
+	brne 1b      ; 2 or 1 cycle, 4 cycles per loop
+	pop  r24     ; 2 ycle
+	ret          ; 4 cycle = total 60 cycles = 5.0 microsec with 12 Mhz crystal
+#elif F_CPU <= 12000000UL
+    push r24     ; 2 cycle
+    ldi	 r24, 12 ; 1 cycle
+	nop          ; 1 cycle
+1:	sbiw r24, 1  ; 2 cycle
+	brne 1b      ; 2 or 1 cycle, 4 cycles per loop
+	pop  r24     ; 2 ycle
+	ret          ; 4 cycle = total 60 cycles = 5.0 microsec with 12 Mhz crystal
+#elif F_CPU <= 16000000UL
+    push r24     ; 2 cycle
+    ldi	 r24, 17 ; 1 cycle
+	nop          ; 1 cycle
+1:	sbiw r24, 1  ; 2 cycle
+	brne 1b      ; 2 or 1 cycle, 4 cycles per loop
+	pop  r24     ; 2 ycle
+	ret          ; 4 cycle = total 80 cycles = 5.0 microsec with 16 Mhz crystal
+#else
+    push r24     ; 2 cycle
+    ldi	 r24, 22 ; 1 cycle
+	nop          ; 1 cycle
+1:	sbiw r24, 1  ; 2 cycle
+	brne 1b      ; 2 or 1 cycle, 4 cycles per loop
+	pop  r24     ; 2 ycle
+	ret          ; 4 cycle = total 100 cycles = 5.0 microsec with 20 Mhz crystal
 #endif
+	.endfunc     ;
+
 
 ;*************************************************************************
 ; Initialization of the I2C bus interface. Need to be called only once
