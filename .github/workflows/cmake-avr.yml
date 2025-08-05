@@ -25,10 +25,10 @@ jobs:
     - name: Install build tool chain
       run: |
         pwd
-        wget "https://github.com/ZakKemble/avr-gcc-build/releases/download/v14.1.0-1/avr-gcc-14.1.0-x64-linux.tar.bz2"
+        wget -q "https://github.com/ZakKemble/avr-gcc-build/releases/download/v14.1.0-1/avr-gcc-14.1.0-x64-linux.tar.bz2"
         ls
         sudo mkdir -p /opt
-        sudo tar -C /opt avr-gcc-14.1.0-x64-linux.tar.bz2
+        sudo tar -C /opt -xf avr-gcc-14.1.0-x64-linux.tar.bz2
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
