@@ -13,11 +13,11 @@
 
 static const uint8_t melody[] PROGMEM = {
     6, 8, 12, 16, 30, 44,  /* index to melodies */
-    250, 100,              /* short */
-    220, 250, 250, 180,    /* relax */
-    250, 180, 220, 250,    /* warn */
-    250, 200, 220, 140, 190, 140, 0, 60, 250, 60, 0, 60, 250, 60,   /* startup */
-    190, 200, 220, 140, 250, 140, 0, 60, 250, 60, 0, 60, 250, 60    /* shutdown */
+    250, 10,               /* short */
+    220, 30, 250, 15,      /* relax */
+    250, 15, 220, 30,      /* warn */
+    250, 20, 220, 14, 190, 14, 0, 6, 250, 6, 0, 6, 250, 6,   /* startup */
+    190, 20, 220, 14, 250, 14, 0, 6, 250, 6, 0, 6, 250, 6    /* shutdown */
 };
 
 void beep_init(void) {
@@ -35,7 +35,7 @@ void beep(const beep_t t) {
     for (pos=pgm_read_byte(melody + t); pos < pgm_read_byte(melody + t + 1); pos+=2) {
         OCR1C = pgm_read_byte(melody + pos);
         OCR1B = OCR1C/2; /* OCR1C/2 for 50% duty cycle */
-        for (len=pgm_read_byte(melody + pos + 1); len>0; len-=20) _delay_ms(20);
+        for (len=pgm_read_byte(melody + pos + 1); len>0; len-=1) _delay_ms(10);
     }
 
     TCCR1 = 0;

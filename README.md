@@ -1,4 +1,4 @@
-# co2-Sensor für Höhlen
+# CO₂-Sensor für Höhlen
 
 ![Build workflow status](https://github.com/keppler/co2/actions/workflows/cmake-avr.yml/badge.svg)
 
