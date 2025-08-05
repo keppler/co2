@@ -24,9 +24,7 @@ jobs:
 
     - name: Install build tool chain
       run: |
-        pwd
         wget -q "https://github.com/ZakKemble/avr-gcc-build/releases/download/v14.1.0-1/avr-gcc-14.1.0-x64-linux.tar.bz2"
-        ls
         sudo mkdir -p /opt
         sudo tar -C /opt -xf avr-gcc-14.1.0-x64-linux.tar.bz2
 
@@ -42,7 +40,7 @@ jobs:
     - name: Archive artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: flash
+        name: firmware
         path: |
           build/co2-scd41.eep
           build/co2-scd41.hex
