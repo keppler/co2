@@ -101,7 +101,7 @@ add_custom_target(hex ALL ${AVR_OBJCOPY} -R .eeprom -O ihex ${PROJECT_NAME}.elf 
 
 # Transform binary into hex file, this is the eeprom part (empty if you don't
 # use eeprom static variables)
-add_custom_target(eeprom ${AVR_OBJCOPY} -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.eep
+add_custom_target(eeprom ALL ${AVR_OBJCOPY} -j .eeprom  --set-section-flags=.eeprom="alloc,load"  --change-section-lma .eeprom=0 -O ihex ${PROJECT_NAME}.elf ${PROJECT_NAME}.eep
         DEPENDS strip)
 
 # Clean extra files
