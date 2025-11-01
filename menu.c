@@ -21,6 +21,8 @@
 #include "timer.h"
 #include "menu.h"
 
+#include "i2cmaster.h"
+
 static uint8_t cursor;
 static scd4x_asc_enabled_t asc_status = SCD4x_ASC_UNKNOWN;
 static uint64_t timeout_ms;
@@ -117,13 +119,14 @@ static void do_poweroff(void) {
     beep(BEEP_SHUTDOWN);
     _delay_ms(1000);
     SSD1306_off();
+    PORTB &= ~(1 << PB3);    /* power-off all devices */
 
 DO_SLEEP:
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     power_all_disable();
     sleep_mode();
 
-    // when we get here, we've been woken up
+    /* when we get here, we've been woken up */
     power_all_enable();
     timer_reset();
     button_reset();
@@ -135,11 +138,37 @@ DO_SLEEP:
         if (timer_millis() - btn_ts > 2000) goto DO_SLEEP;
     }
 
-    // short beep here (to signal that device is powered up; it takes some time unless display is showing something)
+    PORTB |= (1 << PB3);    /* power-on all devices */
+
+    /* short beep here (to signal that device is powered up; it takes some time unless display is showing something) */
     beep(BEEP_SHORT);
 
     SCD4x_wakeUp();
     app_wakeup(0);
+}
+
+static void do_volume(void) {
+UPDATE_VOL:
+    SSD1306_writeInt(15, 4, beep_volume, 10, SSD1306_FLAG_INVERTED, 0);
+    while(1) {
+        button_read();
+        uint8_t btn = button_pressed();
+        if (btn == 1) {
+            /* increase & update value */
+            beep_volume++;
+            if (beep_volume > 3) beep_volume = 0;
+            /* SSD1306_writeInt(15, 4, beep_volume, 10, SSD1306_FLAG_INVERTED, 0); */
+            beep(BEEP_RELAX);
+            goto UPDATE_VOL; /* saves 24 byte */
+        } else if (btn == 2) {
+            /* save new volume in EEPROM */
+            // ToDo ###IMPLEMENT###
+            /* leave loop */
+            break;
+        }
+    }
+    /* write non-inverted */
+    SSD1306_writeInt(15, 4, beep_volume, 10, 0x00, 0);
 }
 
 void menu_enter(void) {
@@ -157,10 +186,12 @@ void menu_enter(void) {
     SSD1306_writeInt(11, 2, altitude, 10, 0x00, 4);
 
     SSD1306_writeString(1, 3, PSTR("SELF TEST"), 1);
-    SSD1306_writeString(1, 4, PSTR("POWER OFF"), 1);
-    SSD1306_writeString(1, 5, PSTR("BACK"), 1);
+    SSD1306_writeString(1, 4, PSTR("VOLUME"), 1);
+    SSD1306_writeInt(15, 4, beep_volume, 10, 0x00, 0);
+    SSD1306_writeString(1, 5, PSTR("POWER OFF"), 1);
+    SSD1306_writeString(1, 6, PSTR("BACK"), 1);
     cursor = 5;
-    SSD1306_writeString(0, 5, PSTR("*"), 1);
+    SSD1306_writeString(0, 6, PSTR("*"), 1);
     timeout_ms = timer_millis();
 }
 
@@ -170,7 +201,7 @@ void menu_loop(void) {
     if (btn == 1) {
         SSD1306_writeString(0, cursor, PSTR(" "), 1);
         cursor++;
-        cursor %= 6; /* if (cursor == 6) cursor = 0; */
+        cursor %= 7; /* if (cursor == 6) cursor = 0; */
         SSD1306_writeString(0, cursor, PSTR("*"), 1);
     } else if (btn == 2) {
         if (cursor == 0) {
@@ -190,11 +221,15 @@ void menu_loop(void) {
             do_selftest();
             menu_enter();
         } else if (cursor == 4) {
+            /* change volume */
+            do_volume();
+            menu_enter();
+        } else if (cursor == 5) {
             // power off
             do_poweroff();
             // returning here means, device was woken up
             app_state_next(MAINLOOP);
-        } else if (cursor == 5) {
+        } else if (cursor == 6) {
             // back
             app_state_next(MAINLOOP);
         }
