@@ -11,6 +11,8 @@
 #include <util/delay.h>
 #include "beep.h"
 
+uint8_t beep_volume = 3;
+
 static const uint8_t melody[] PROGMEM = {
     6, 8, 12, 16, 30, 44,  /* index to melodies */
     250, 10,               /* short */
@@ -27,14 +29,17 @@ void beep_init(void) {
 }
 
 void beep(const beep_t t) {
+    if (beep_volume == 0) return;
+
     uint8_t len;
     TCCR1 = 1<<CS10;
     GTCCR = 1 << PWM1B | 1 << COM1B1;
 
     uint8_t pos;
     for (pos=pgm_read_byte(melody + t); pos < pgm_read_byte(melody + t + 1); pos+=2) {
-        OCR1C = pgm_read_byte(melody + pos);
-        OCR1B = OCR1C/2; /* OCR1C/2 for 50% duty cycle */
+        uint8_t tmp = pgm_read_byte(melody + pos);
+        OCR1C = tmp;
+        OCR1B = tmp >> beep_volume;
         for (len=pgm_read_byte(melody + pos + 1); len>0; len-=1) _delay_ms(10);
     }
 

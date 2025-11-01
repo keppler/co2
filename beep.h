@@ -17,6 +17,7 @@ typedef enum {
     BEEP_SHUTDOWN = 4,
 } beep_t;
 
+extern uint8_t beep_volume;
 void beep_init(void);
 void beep(const beep_t t);
 
