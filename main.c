@@ -22,7 +22,7 @@
 #define VCC_MIN 280 /* minimum voltage: 2.80V */
 #define VCC_MAX 370 /* maximum voltage: 3.70V */
 
-const char app_version[] PROGMEM = "V33 - 2025-08-05";
+const char app_version[] PROGMEM = "V34 - 2025-10-26";
 
 // show battery status
 static uint8_t oldPct = 0;
@@ -89,10 +89,7 @@ static void main_loop(void) {
             SSD1306_writeInt(6, 5, 90 - (timer_millis() / 1000), 10, 0, 2);
         }
         err = SCD4x_getData();
-        if (err > 1) {
-            SSD1306_writeString(0, 3, PSTR("ERR:       "), 1);
-            SSD1306_writeInt(5, 3, err, 16, 0x00, 0);
-        } else if (err == 0) {
+        if (err == 0) {
             if (main_state == MAIN_STATE_EMPTY) {
                 SSD1306_writeString(4, 3, PSTR("."), 1);
                 SSD1306_writeString(7, 2, PSTR("[C"), 1);   /* '[' is displayed as '°' */
@@ -154,6 +151,10 @@ static void main_loop(void) {
                 /* within range of lastThreshold +/- 1999, reset reduce counter */
                 belowThresholdSecs = 60;
             }
+        } else if (err != 0xFF) {
+            /* ignore case of 0xff (no data available) */
+            SSD1306_writeString(0, 3, PSTR("ERR:       "), 1);
+            SSD1306_writeInt(5, 3, err, 16, 0x00, 0);
         }
         if (tick % 10 == 0) {
             /* update VCC display every ~10 seconds */
@@ -218,6 +219,8 @@ void app_wakeup(uint8_t initial) {
         //SSD1306_writeChar(x++, 5, 'V', 0x00);
     }
 
+/* disabled display of serial number to save precious memory on ATtiny85 */
+#if 0
     /* read serial number */
     if (initial) {
         uint8_t serial[6];
@@ -244,6 +247,7 @@ void app_wakeup(uint8_t initial) {
             }
         }
     }
+#endif
 
     /* reset max and threshold values after power-off */
     lastThreshold = 2000;
@@ -254,6 +258,10 @@ void app_wakeup(uint8_t initial) {
 }
 
 int main(void) {
+    /* PB3: sensor power */
+    DDRB |= (1 << DDB3);    /* set port mode to OUTPUT */
+    PORTB |= (1 << PB3);    /* set ON */
+
     /* initialize time functions */
     timer_init();
 
@@ -261,10 +269,6 @@ int main(void) {
 
     /* init sound transducer */
     beep_init();
-
-    // PB3: unused piezo
-    DDRB &= ~(1 << DDB3);   // set port mode to INPUT
-    PORTB |= (1 << PB3);    // enable pull-up
 
     /* initialize I²C bus */
     i2c_init();
