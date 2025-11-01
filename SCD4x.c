@@ -140,7 +140,7 @@ uint8_t SCD4x_getData(void) {
         /* error while reading */
         return ret;
     }
-    if (data[0] == 0) return 0xFF; /* no data available */
+    if ((data[0] & 0x07FF) == 0) return 0xFF; /* no data available */
 
     /* now read data */
     if ((ret = _readRegister(SCD4x_COMMAND_READ_MEASUREMENT, NULL, 0, data, 3, 1)) != 0) {
