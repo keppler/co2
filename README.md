@@ -49,17 +49,38 @@ Zur Anzeige kommt ein schlichtes OLED-Display vom Typ _SSD1306_ zum Einsatz. Auc
 
 ### Variante "Minimalistisch"
 
-Für den ersten Prototypen reichte eine simple Lochrasterplatine, da im Prinzip nur die Stromversorgung und der I²C-Bus vom Controller zum Sensor und Display (parallel) durchverdrahtet werden mussten.
+Für den ersten Prototypen reichte eine simple Lochrasterplatine, da im Prinzip nur die Stromversorgung und der I²C-Bus vom Controller zum Sensor und Display (parallel) durchverdrahtet werden mussten:
 
-![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/docs/sensor.webp)
+<!-- ![Bild des ersten Sensor-Prototypen im Einsatz](https://github.com/keppler/co2/raw/master/docs/sensor.webp) -->
 
-### Variante "Komfort" (Version 1.1)
+![einfacher Prototyp](https://github.com/keppler/co2/raw/master/docs/prototype.webp)
 
-Da noch nicht alle Pins genutzt wurden, umfasst die "Komfort-Schaltung" noch einen Piezo-Piepser sowie eine Taste zur Quittierung bzw. Konfiguration. Zudem wurde eine eigene Platine gestaltet, um die Komponenten ordentlich zu verbauen:
+### Variante "Komfort" (Version 1.3)
+
+Da noch nicht alle Pins genutzt wurden, umfasst die "Komfort-Schaltung" noch einen Piezo-Piepser sowie eine Taste zur Quittierung bzw. Konfiguration. Zudem wurde eine eigene Platine gestaltet, um die Komponenten ordentlich zu verbauen.
+
+![Schaltplan](https://github.com/keppler/co2/raw/master/docs/schematic.webp)
 
 ![Platine](https://github.com/keppler/co2/raw/master/docs/pcb.webp)
 
 Die Platine kann per SMD oder "klassisch" mit Lötkolben bestückt werden.
+
+![SMD-bestückte Platine](https://github.com/keppler/co2/raw/master/docs/pcb-assembled.webp)
+
+Bauteilliste (Bill of Materials - BOM):
+
+| Bezeichnung | Bauteil                           |
+|-------------|-----------------------------------|
+| U1          | ATtiny85                          |
+| U2          | SCD41                             |
+| Q1, Q2      | SI2302DS oder BS170               |
+| R1          | Widerstand 100kΩ                  |
+| R2          | Widerstand 47Ω                    |
+| C1          | Kondensator 0.1µF                 |
+| DISPLAY     | 0,96" OLED-Display SSD1306 (I²C!) |
+| BUZZER      | 12x8.5mm passive Buzzer Typ 12085 |
+
+Der Kondensator _C2_ kann weggelassen werden.
 
 ## Die Software
 
@@ -72,7 +93,7 @@ avrdude -c usbasp -p t85 -P usb -v -U lfuse:w:0x62:m -U hfuse:w:0xd7:m -U efuse:
 avrdude -c usbasp -p t85 -P usb -v -U lfuse:w:0x62:m -U hfuse:w:0xd7:m -U efuse:w:0xff:m -U eeprom:w:co2-scd41.eep:i
 ```
 
-Aktuell belegt die Software mit 8.188 Bytes praktisch den kompletten verfügbaren Speicher, somit ist ohne größere Tricks vorerst keine nennenswerte Erweiterung der Funktionalität möglich. Anders formuliert: die verfügbaren Ressourcen werden optimal ausgenutzt. :-)
+Aktuell belegt die Software mit 8.100 Bytes fast den gesamten verfügbaren Speicher, somit ist ohne größere Tricks vorerst keine nennenswerte Erweiterung der Funktionalität möglich. Anders formuliert: die verfügbaren Ressourcen werden optimal ausgenutzt. :-)
 
 ## Bedienungsanleitung
 
@@ -86,7 +107,8 @@ Aus der Messung heraus erreicht man über einen kurzen Drücker das Menü:
 - **`FORCE CALIBRATE`**: Kalibrierung mit einer CO₂-Konzentration von 420ppm (Außenluft) erzwingen. Wichtig ist hierfür, dass der Sensor seit mindestens 3 Minuten durchgehend an der Außenluft betrieben wird.
 - **`ALTITUDE: xxx`**: Einstellung der Höhe (verbessert die Genauigkeit der CO₂-Messung). Kann in 100m-Schritten von 0-3000m eingestellt werden, die Einstellung wird dauerhaft im Sensor gespeichert.
 - **`SELF TEST`**: Selbsttest des SCD41-Sensors ausführen. Dieser Vorgang dauert 10 Sekunden und sollte eigentlich immer `OK` zurückgeben.
-- **`POWER OFF`**: Gerät ausschalten. Im Standby benötigt die Schaltung nur knapp 15µA (das liegt in der Größenordnung der Selbstentladung der Batterie). Mit einen langen Tastendruck kann man den Sensor wieder einschalten.
+- **`VOLUME`**: Einstellung der Piepser-Lautstärke (0=aus, 1=laut, 2=mittel, 3=leise; Standard=3).
+- **`POWER OFF`**: Gerät ausschalten. Im Standby benötigt die Schaltung nur 210nA/0.2µA (das liegt weit unterhalb der Selbstentladung der Batterie). Mit einen langen Tastendruck kann man den Sensor wieder einschalten.
 - **`BACK`**: zurück zur Messung (erfolgt ansonsten auch automatisch nach 10 Sekunden)
 
 ## Ausblick
@@ -97,6 +119,6 @@ Zudem ist eine Variante angedacht, welche auf einen Langzeitbetrieb ausgelegt is
 
 ## ToDo
 
-Stand: 09.07.2025
+Stand: 03.11.2025
 
 - [ ] 3D-Druckvorlage für Gehäuse bereitstellen
