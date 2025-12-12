@@ -199,6 +199,16 @@ aber auf Dauer auch ein Problem darstellen.
 Ein Datenlogger-Prototyp ist derzeit in Vorbereitung - da aber auch Referenzmessungen über längere Zeiträume stattfinden
 müssen wird das alles noch ein wenig dauern.
 
+### Alternative Ansätze
+
+Ein anderer Ansatz ist, ein ESP32-Board mit integriertem Display zu verwenden, z.B. ein _TTGO T-Display_.
+Der Code kann mit der _Arduino IDE_ entwickelt und bequem geflashed werden, den Sensor schließt man direkt an die
+Pins des Board an. Beispiele hierzu gibt es z.B. unter https://emariete.com/en/co2-meter-gadget/
+
+Ein solches Board benötigt im Betrieb allerdings wesentlich mehr Strom als ein einzelner, kleiner Mikrocontroller.
+Diese Variante ist also insbesondere dann interessant, wenn entweder Strom keine Rolle spielt (weil der Einsatz
+auf wenige Stunden begrenzt ist), oder man bereits mit dem Arduino-Ökosystem vertraut ist.
+
 ### Weiterführende Informationen
 
 - Smith, Garry K. (2003): Carbon Dioxide in Limestone Caves and its Effect on Cavers.  
@@ -206,6 +216,7 @@ müssen wird das alles noch ein wenig dauern.
   https://bcra.org.uk/pub/docs/downloads.html?f=sp003010.f
 - Bad Air in Caves  
   https://www.youtube.com/watch?v=hUKdhmzOqtQ
+
 
 ## ToDo
 
