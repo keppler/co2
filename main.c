@@ -22,7 +22,7 @@
 #define VCC_MIN 280 /* minimum voltage: 2.80V */
 #define VCC_MAX 370 /* maximum voltage: 3.70V */
 
-const char app_version[] PROGMEM = "V34 - 2025-10-26";
+const char app_version[] PROGMEM = "V35 - 2026-06-27";
 
 // show battery status
 static uint8_t oldPct = 0;

@@ -232,6 +232,5 @@ auf wenige Stunden begrenzt ist), oder man bereits mit dem Arduino-Ökosystem ve
 
 Stand: 27.06.2026
 
-- [ ] Bekannter Fehler: der Selbsttest funktioniert aktuell nicht (liegt nicht am Sensor)
-- [ ] Bekannter Fehler: nach starken Erschütterungen kann es sein, dass die Messung "festhängt", also trotz Animation keine Daten aktualisiert.
+- [ ] Bekannter Fehler: nach starken Erschütterungen *kann* es sein, dass die Messung "festhängt", also trotz Animation keine Daten aktualisiert.
       Der Code wird in Kürze entsprechend angepasst, so dass nach mehreren identischen Messungen ein Sensor-Reset ausgelöst wird.

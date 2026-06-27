@@ -104,7 +104,7 @@ static void do_selftest(void) {
         SSD1306_writeString(8, 1, PSTR("OK"), 1);
     } else {
         SSD1306_writeString(8, 1, PSTR("ERR"), 1);
-        SSD1306_writeInt(12, 1, status, 10, 0x00, 0);
+        SSD1306_writeInt(12, 1, status, 16, 0x00, 0);
     }
     _delay_ms(2000);
 }

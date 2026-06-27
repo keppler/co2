@@ -69,21 +69,25 @@ static uint8_t _readRegister(uint16_t registerAddress, const uint16_t *data, uin
         i2c_write(buf[1]);
         i2c_write(_computeCRC8(buf, 2)); // CRC
     }
+    /* stopping in all cases, see line 87ff for full explanation */
+    i2c_stop();
 
     while (delayMillis > 0) {
-        // workaround against overflow on large delays (i.e. 10000ms on self test)
+        /* workaround against overflow on large delays (i.e. 10000ms on self test) */
         uint16_t wait = delayMillis > 1000 ? 1000 : delayMillis;
         _delay_ms(wait);
         delayMillis -= wait;
     }
 
     if (response == NULL || responseCount == 0) {
-        i2c_stop();
         return 0;
     }
 
     uint8_t ret = 0;
-    i2c_rep_start(SCD4x_ADDRESS + I2C_READ);
+    /* instead of i2c_rep_start(), we need to restart with i2c_start()... contrary to the SCD41 documentation,
+     * the bus requires a full i2c_stop()/i2c_start() at least on very long requests like the self-test (10sec)
+     * (for all "faster" commands the previous i2c_rep_start() would work though) */
+    i2c_start(SCD4x_ADDRESS + I2C_READ);
     for (uint8_t i=0; i < responseCount; i++) {
         buf[0] = i2c_readAck();
         buf[1] = i2c_readAck();
