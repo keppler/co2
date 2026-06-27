@@ -116,6 +116,14 @@ erstellen lassen, z.B. bei JLCPCB oder Elecrow.
 Ich habe normalerweise immer die eine oder andere Platine "übrig" - ein offizieller Verkauf ist aufgrund der Elektronikregulierung
 aber nicht möglich. Bei Interesse bitte kurze Mail an `klaus (at) fund-ev.de`.
 
+### Gehäuse
+
+Ein passendes Gehäuse kann bequem mit einem 3D-Drucker erstellt werden, die `.stl`-Druckdateien liegen im Verzeichnis `case/`. PLA-Filament ist meistens völlig ausreichend, ABS ist natürlich robuster (aber auch schwieriger zu drucken).
+
+Das Display kann am Deckel verschraubt werden, hierzu vier Gewindeeinsätze (M2.5x3) in die vorbereiteten Löcher einschmelzen. Die Platine kann ebenfalls per Schraube am Boden fixiert werden, leider ist das Loch etwas zu klein geraten - daher wird hier ein M2-Gewindeeinsatz (M2x3 oder M2x4) benötigt.
+
+Wird der Deckel häufiger mal abgenommen, neigt leider das Kabel vom Display zur Platine zu Kabelbrüchen (vor allem am Display-Ende). Ich empfehle hierfür eine dünne **Silikon-Litze** zu verwenden (z.B. [diese: 4P, 26AWG](https://www.aliexpress.com/item/1005011606377608.html?spm=a2g0o.order_list.order_list_main.10.5cd65c5fmp5Ztc)).
+
 ## Die Software
 
 Zum Compilieren werden die AVR-Toolchain und CMake benötigt. Alternativ kann ein fertig compiliertes Binary auch hier
@@ -220,6 +228,8 @@ auf wenige Stunden begrenzt ist), oder man bereits mit dem Arduino-Ökosystem ve
 
 ## ToDo
 
-Stand: 03.11.2025
+Stand: 27.06.2026
 
-- [ ] 3D-Druckvorlage für Gehäuse bereitstellen
+- [ ] Bekannter Fehler: der Selbsttest funktioniert aktuell nicht (liegt nicht am Sensor)
+- [ ] Bekannter Fehler: nach starken Erschütterungen kann es sein, dass die Messung "festhängt", also trotz Animation keine Daten aktualisiert.
+      Der Code wird in Kürze entsprechend angepasst, so dass nach mehreren identischen Messungen ein Sensor-Reset ausgelöst wird.
