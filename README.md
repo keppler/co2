@@ -124,6 +124,8 @@ Das Display kann am Deckel verschraubt werden, hierzu vier Gewindeeinsätze (M2.
 
 Wird der Deckel häufiger mal abgenommen, neigt leider das Kabel vom Display zur Platine zu Kabelbrüchen (vor allem am Display-Ende). Ich empfehle hierfür eine dünne **Silikon-Litze** zu verwenden (z.B. [diese: 4P, 26AWG](https://www.aliexpress.com/item/1005011606377608.html?spm=a2g0o.order_list.order_list_main.10.5cd65c5fmp5Ztc)).
 
+![geöffnetes Gehäuse](https://github.com/keppler/co2/raw/master/docs/sensor-v2-open.webp)
+
 ## Die Software
 
 Zum Compilieren werden die AVR-Toolchain und CMake benötigt. Alternativ kann ein fertig compiliertes Binary auch hier
